@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <title>SatvikScan</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    :root {
+      --green: #4ade80;
+      --red: #f87171;
+      --bg: #0a0a0a;
+      --surface: #141414;
+      --surface2: #1c1c1c;
+      --border: #252525;
+      --text: #e5e5e5;
+      --text-dim: #888;
+      --text-faint: #555;
+      --nav-h: 64px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      overflow-x: hidden;
+      padding-bottom: calc(var(--nav-h) + var(--safe-bottom));
+    }
+
+    /* ====== Bottom Nav ====== */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(var(--nav-h) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      z-index: 100;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      color: var(--text-faint);
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: color 0.2s;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .nav-item.active { color: var(--green); }
+    .nav-item svg { width: 24px; height: 24px; }
+
+    /* ====== Pages ====== */
+    .page { display: none; }
+    .page.active { display: flex; flex-direction: column; }
+
+    /* ====== Top Bar ====== */
+    .topbar {
+      padding: 16px 20px 12px;
+      text-align: center;
+    }
+
+    .topbar h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .topbar h1 span { color: var(--green); }
+
+    .topbar .subtitle {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* ====== Scan Page ====== */
+    .scan-page { padding: 0 16px 24px; }
+
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 16px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+      margin-top: 8px;
+    }
+
+    .upload-zone:active, .upload-zone.dragover {
+      border-color: var(--green);
+      background: #0a1a0a;
+    }
+
+    .upload-zone input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .upload-icon {
+      width: 48px;
+      height: 48px;
+      margin: 0 auto 12px;
+      background: var(--surface2);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .upload-icon svg { width: 24px; height: 24px; color: var(--green); }
+
+    .upload-zone .label {
+      color: var(--text-dim);
+      font-size: 0.85rem;
+    }
+
+    .upload-zone .hint {
+      color: var(--text-faint);
+      font-size: 0.72rem;
+      margin-top: 6px;
+    }
+
+    .upload-zone .filename {
+      color: var(--green);
+      font-size: 0.8rem;
+      margin-top: 8px;
+      word-break: break-all;
+    }
+
+    /* Preview */
+    .preview-wrap {
+      display: none;
+      margin-top: 12px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+
+    .preview-wrap img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .preview-wrap .clear-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.7);
+      border: none;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Scan button */
+    .scan-btn {
+      width: 100%;
+      padding: 14px;
+      margin-top: 16px;
+      border: none;
+      border-radius: 14px;
+      background: var(--green);
+      color: #000;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .scan-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .scan-btn:active:not(:disabled) { opacity: 0.85; }
+
+    /* Loader */
+    .loader {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 20px;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loader p {
+      color: var(--text-dim);
+      font-size: 0.82rem;
+      margin-top: 16px;
+    }
+
+    /* Error */
+    .error-box {
+      display: none;
+      background: #1a0808;
+      border: 1px solid #3a1a1a;
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: var(--red);
+      font-size: 0.85rem;
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    /* ====== Results ====== */
+    .results-section {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .result-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .result-topbar h2 {
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    .badge {
+      font-size: 0.6rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .badge.llm { background: #7c3aed; color: #fff; }
+    .badge.cache_exact { background: #0ea5e9; color: #fff; }
+    .badge.cache_fuzzy { background: #f59e0b; color: #000; }
+
+    /* Guessed item */
+    .guessed-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .guessed-card .lbl {
+      font-size: 0.6rem;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .guessed-card .val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 4px;
+    }
+
+    /* Diet grid */
+    .diet-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .diet-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      border-left: 3px solid var(--border);
+    }
+
+    .diet-card.pass { border-left-color: var(--green); }
+    .diet-card.fail { border-left-color: var(--red); }
+
+    .diet-card .d-name {
+      font-size: 0.68rem;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .diet-card .d-status {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .diet-card.pass .d-status { color: var(--green); }
+    .diet-card.fail .d-status { color: var(--red); }
+
+    .diet-card .d-reason {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+
+    /* Ingredients chips */
+    .ing-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+
+    .ing-section h3 {
+      font-size: 0.65rem;
+      color: var(--text-faint);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .ing-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 0.72rem;
+      color: #ccc;
+    }
+
+    .new-scan-btn {
+      width: 100%;
+      padding: 12px;
+      margin-top: 4px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .new-scan-btn:active { border-color: var(--text-faint); color: var(--text); }
+
+    /* ====== History Page ====== */
+    .history-page { padding: 0 16px 24px; }
+
+    .history-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-faint);
+      font-size: 0.85rem;
+    }
+
+    .history-empty svg {
+      width: 48px;
+      height: 48px;
+      color: var(--text-faint);
+      margin-bottom: 12px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .history-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .history-card:active { border-color: var(--text-faint); }
+
+    .h-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .h-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      flex: 1;
+      margin-right: 8px;
+    }
+
+    .h-date {
+      font-size: 0.65rem;
+      color: var(--text-faint);
+      white-space: nowrap;
+    }
+
+    .h-badges {
+      display: flex;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .h-badge {
+      font-size: 0.62rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .h-badge.pass {
+      background: rgba(74, 222, 128, 0.12);
+      color: var(--green);
+      border: 1px solid rgba(74, 222, 128, 0.2);
+    }
+
+    .h-badge.fail {
+      background: rgba(248, 113, 113, 0.1);
+      color: var(--red);
+      border: 1px solid rgba(248, 113, 113, 0.15);
+    }
+
+    .h-hits {
+      font-size: 0.62rem;
+      color: var(--text-faint);
+      margin-top: 8px;
+    }
+
+    /* Detail modal (bottom sheet) */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 200;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .modal-overlay.open { display: flex; }
+
+    .modal-sheet {
+      background: var(--bg);
+      border-top-left-radius: 20px;
+      border-top-right-radius: 20px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 85dvh;
+      overflow-y: auto;
+      padding: 8px 16px calc(20px + var(--safe-bottom));
+      animation: slideUp 0.25s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .modal-handle {
+      width: 36px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin: 8px auto 16px;
+    }
+
+    .modal-sheet .guessed-card { margin-bottom: 12px; }
+    .modal-sheet .diet-grid { margin-bottom: 12px; }
+    .modal-sheet .ing-section { margin-bottom: 12px; }
+
+    .modal-close-btn {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: transparent;
+      color: var(--text-dim);
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    /* Desktop */
+    @media (min-width: 640px) {
+      .scan-page, .history-page { max-width: 560px; margin: 0 auto; }
+      .modal-sheet { max-width: 560px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SCAN PAGE -->
+  <div class="page active" id="pageScan">
+    <div class="topbar">
+      <h1>Satvik<span>Scan</span></h1>
+      <div class="subtitle">Upload a food label to check dietary compliance</div>
+    </div>
+    <div class="scan-page">
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept="image/*" capture="environment" />
+        <div class="upload-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>
+        <div class="label">Tap to take a photo or upload</div>
+        <div class="hint">Supports JPG, PNG, WebP</div>
+        <div class="filename" id="fileName"></div>
+      </div>
+
+      <div class="preview-wrap" id="previewWrap">
+        <img id="previewImg" alt="Preview" />
+        <button class="clear-btn" id="clearBtn">&times;</button>
+      </div>
+
+      <button class="scan-btn" id="scanBtn" disabled>Scan Ingredients</button>
+
+      <div class="loader" id="loader">
+        <div class="spinner"></div>
+        <p id="loaderText">Analyzing image…</p>
+      </div>
+
+      <div class="error-box" id="errorBox"></div>
+
+      <div class="results-section" id="results">
+        <div class="result-topbar">
+          <h2>Results</h2>
+          <span class="badge" id="sourceBadge"></span>
+        </div>
+
+        <div class="guessed-card" id="guessedCard">
+          <div class="lbl">Detected Product</div>
+          <div class="val" id="guessedVal"></div>
+        </div>
+
+        <div class="diet-grid" id="dietGrid"></div>
+
+        <div class="ing-section">
+          <h3>Extracted Ingredients</h3>
+          <div class="ing-chips" id="ingChips"></div>
+        </div>
+
+        <button class="new-scan-btn" id="newScanBtn">Scan Another Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="pageHistory">
+    <div class="topbar">
+      <h1>Scan <span>History</span></h1>
+      <div class="subtitle">Previously scanned products</div>
+    </div>
+    <div class="history-page">
+      <div class="history-empty" id="historyEmpty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <p>No scans yet. Go scan something!</p>
+      </div>
+      <div class="history-list" id="historyList"></div>
+    </div>
+  </div>
+
+  <!-- DETAIL MODAL -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-sheet" id="modalSheet">
+      <div class="modal-handle"></div>
+      <div class="guessed-card" id="modalGuessed">
+        <div class="lbl">Product</div>
+        <div class="val" id="modalGuessVal"></div>
+      </div>
+      <div class="diet-grid" id="modalDietGrid"></div>
+      <div class="ing-section">
+        <h3>Ingredients</h3>
+        <div class="ing-chips" id="modalIngChips"></div>
+      </div>
+      <button class="modal-close-btn" id="modalCloseBtn">Close</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <div class="nav-item active" data-page="pageScan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+      <span>Scan</span>
+    </div>
+    <div class="nav-item" data-page="pageHistory">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span>History</span>
+    </div>
+  </nav>
+
+  <script>
+    // ====== NAV ======
+    const navItems = document.querySelectorAll('.nav-item');
+    const pages = document.querySelectorAll('.page');
+
+    navItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const target = item.dataset.page;
+        navItems.forEach(n => n.classList.remove('active'));
+        pages.forEach(p => p.classList.remove('active'));
+        item.classList.add('active');
+        document.getElementById(target).classList.add('active');
+        if (target === 'pageHistory') loadHistory();
+      });
+    });
+
+    // ====== SCAN ======
+    const fileInput = document.getElementById('fileInput');
+    const uploadZone = document.getElementById('uploadZone');
+    const fileName = document.getElementById('fileName');
+    const previewWrap = document.getElementById('previewWrap');
+    const previewImg = document.getElementById('previewImg');
+    const clearBtn = document.getElementById('clearBtn');
+    const scanBtn = document.getElementById('scanBtn');
+    const loader = document.getElementById('loader');
+    const loaderText = document.getElementById('loaderText');
+    const errorBox = document.getElementById('errorBox');
+    const results = document.getElementById('results');
+    const sourceBadge = document.getElementById('sourceBadge');
+    const guessedCard = document.getElementById('guessedCard');
+    const guessedVal = document.getElementById('guessedVal');
+    const dietGrid = document.getElementById('dietGrid');
+    const ingChips = document.getElementById('ingChips');
+    const newScanBtn = document.getElementById('newScanBtn');
+
+    let selectedFile = null;
+
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+    uploadZone.addEventListener('drop', e => {
+      e.preventDefault();
+      uploadZone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    clearBtn.addEventListener('click', e => { e.stopPropagation(); resetScan(); });
+
+    function handleFile(file) {
+      if (!file.type.startsWith('image/')) return showError('Please select an image file.');
+      selectedFile = file;
+      fileName.textContent = file.name;
+      scanBtn.disabled = false;
+      const reader = new FileReader();
+      reader.onload = e => { previewImg.src = e.target.result; previewWrap.style.display = 'block'; };
+      reader.readAsDataURL(file);
+      hideError();
+      results.style.display = 'none';
+    }
+
+    scanBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+      scanBtn.disabled = true;
+      uploadZone.style.display = 'none';
+      previewWrap.style.display = 'none';
+      errorBox.style.display = 'none';
+      results.style.display = 'none';
+      loader.style.display = 'flex';
+      loaderText.textContent = 'Analyzing image…';
+
+      const formData = new FormData();
+      formData.append('image', selectedFile);
+
+      try {
+        const res = await fetch('/api/scan', { method: 'POST', body: formData });
+        const data = await res.json();
+        loader.style.display = 'none';
+
+        if (!res.ok || !data.success) {
+          showError(data.error || 'Something went wrong.');
+          uploadZone.style.display = 'block';
+          scanBtn.disabled = false;
+          return;
+        }
+        renderResults(data);
+      } catch {
+        loader.style.display = 'none';
+        showError('Network error. Please try again.');
+        uploadZone.style.display = 'block';
+        scanBtn.disabled = false;
+      }
+    });
+
+    function renderResults(data) {
+      const labels = { llm: 'LLM', cache_exact: 'Cached', cache_fuzzy: 'Fuzzy' };
+      sourceBadge.textContent = labels[data.source] || data.source;
+      sourceBadge.className = 'badge ' + data.source;
+
+      if (data.compliance.guessed_item) {
+        guessedVal.textContent = data.compliance.guessed_item;
+        guessedCard.style.display = 'block';
+      } else {
+        guessedCard.style.display = 'none';
+      }
+
+      renderDietGrid(dietGrid, data.compliance);
+      renderIngChips(ingChips, data.ingredients);
+      results.style.display = 'flex';
+    }
+
+    newScanBtn.addEventListener('click', resetScan);
+
+    function resetScan() {
+      selectedFile = null;
+      fileInput.value = '';
+      fileName.textContent = '';
+      previewWrap.style.display = 'none';
+      results.style.display = 'none';
+      scanBtn.disabled = true;
+      uploadZone.style.display = 'block';
+      hideError();
+    }
+
+    function showError(msg) { errorBox.textContent = msg; errorBox.style.display = 'block'; }
+    function hideError() { errorBox.style.display = 'none'; }
+
+    // ====== SHARED RENDERERS ======
+    const DIETS = [
+      { key: 'vegetarian', label: 'Vegetarian' },
+      { key: 'jain', label: 'Jain' },
+      { key: 'upvas', label: 'Upvas' },
+      { key: 'swaminarayan', label: 'Swaminarayan' },
+      { key: 'vegan', label: 'Vegan' },
+    ];
+
+    function renderDietGrid(container, compliance) {
+      container.innerHTML = '';
+      for (const d of DIETS) {
+        const pass = compliance[`is_${d.key}`];
+        const reason = compliance[`reason_${d.key}`];
+        const card = document.createElement('div');
+        card.className = `diet-card ${pass ? 'pass' : 'fail'}`;
+        card.innerHTML = `
+          <div class="d-name">${d.label}</div>
+          <div class="d-status">${pass ? '✓ Yes' : '✗ No'}</div>
+          ${reason ? `<div class="d-reason">${esc(reason)}</div>` : ''}
+        `;
+        container.appendChild(card);
+      }
+    }
+
+    function renderIngChips(container, ingredients) {
+      container.innerHTML = '';
+      for (const ing of ingredients) {
+        const s = document.createElement('span');
+        s.className = 'chip';
+        s.textContent = ing;
+        container.appendChild(s);
+      }
+    }
+
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    // ====== HISTORY ======
+    const historyList = document.getElementById('historyList');
+    const historyEmpty = document.getElementById('historyEmpty');
+
+    async function loadHistory() {
+      try {
+        const res = await fetch('/api/history');
+        const data = await res.json();
+
+        if (!data.success || !data.history.length) {
+          historyEmpty.style.display = 'block';
+          historyList.innerHTML = '';
+          return;
+        }
+
+        historyEmpty.style.display = 'none';
+        historyList.innerHTML = '';
+
+        for (const item of data.history) {
+          const card = document.createElement('div');
+          card.className = 'history-card';
+
+          const name = item.compliance?.guessed_item || 'Unknown Product';
+          const date = item.createdAt
+            ? new Date(item.createdAt).toLocaleDateString('en-IN', {
+                day: 'numeric', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+              })
+            : '';
+
+          let badges = '';
+          for (const d of DIETS) {
+            const pass = item.compliance?.[`is_${d.key}`];
+            badges += `<span class="h-badge ${pass ? 'pass' : 'fail'}">${d.label}</span>`;
+          }
+
+          card.innerHTML = `
+            <div class="h-top">
+              <div class="h-name">${esc(name)}</div>
+              <div class="h-date">${date}</div>
+            </div>
+            <div class="h-badges">${badges}</div>
+            ${item.hitCount > 0 ? `<div class="h-hits">Used ${item.hitCount} time${item.hitCount > 1 ? 's' : ''} from cache</div>` : ''}
+          `;
+
+          card.addEventListener('click', () => openDetail(item));
+          historyList.appendChild(card);
+        }
+      } catch {
+        historyEmpty.style.display = 'block';
+        historyList.innerHTML = '';
+      }
+    }
+
+    // ====== DETAIL MODAL ======
+    const modalOverlay = document.getElementById('modalOverlay');
+    const modalGuessVal = document.getElementById('modalGuessVal');
+    const modalDietGrid = document.getElementById('modalDietGrid');
+    const modalIngChips = document.getElementById('modalIngChips');
+    const modalCloseBtn = document.getElementById('modalCloseBtn');
+
+    function openDetail(item) {
+      modalGuessVal.textContent = item.compliance?.guessed_item || 'Unknown';
+      renderDietGrid(modalDietGrid, item.compliance || {});
+      renderIngChips(modalIngChips, item.ingredientsArray || []);
+      modalOverlay.classList.add('open');
+    }
+
+    modalCloseBtn.addEventListener('click', () => modalOverlay.classList.remove('open'));
+    modalOverlay.addEventListener('click', e => {
+      if (e.target === modalOverlay) modalOverlay.classList.remove('open');
+    });
+  </script>
+</body>
+</html>
