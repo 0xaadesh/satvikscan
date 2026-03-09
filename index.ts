@@ -2,7 +2,8 @@ import { ocr } from './src/ocr';
 import { checkDiet } from './src/dietChecker';
 import { lookupCache, insertCache } from './src/cache';
 
-const imagePath = process.argv[2];
+// Skip flags (e.g. --cwd injected by pm2)
+const imagePath = process.argv.slice(2).find(arg => !arg.startsWith("-"));
 
 // If no image path provided, start the web server
 if (!imagePath) {

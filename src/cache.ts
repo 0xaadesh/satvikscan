@@ -73,10 +73,10 @@ export async function insertCache(
   ingredients: string[],
   compliance: ComplianceResult,
   source: string = "ocr"
-): Promise<void> {
+): Promise<number | undefined> {
   const { array, hash, text } = normalizeIngredients(ingredients);
 
-  await db
+  const rows = await db
     .insert(ingredientCache)
     .values({
       ingredientsHash: hash,
@@ -85,5 +85,8 @@ export async function insertCache(
       compliance,
       source,
     })
-    .onConflictDoNothing(); // skip if hash already exists (race condition guard)
+    .onConflictDoNothing()
+    .returning({ id: ingredientCache.id });
+
+  return rows[0]?.id;
 }

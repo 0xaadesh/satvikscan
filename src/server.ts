@@ -2,8 +2,8 @@ import { ocrFromBuffer } from "./ocr";
 import { checkDiet } from "./dietChecker";
 import { lookupCache, insertCache } from "./cache";
 import { db } from "./db";
-import { ingredientCache } from "./db/schema";
-import { desc } from "drizzle-orm";
+import { ingredientCache, scans } from "./db/schema";
+import { desc, eq, sql, count, max } from "drizzle-orm";
 import { randomBytes } from "crypto";
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -123,6 +123,8 @@ async function handleScan(req: Request): Promise<Response> {
   try {
     const formData = await req.formData();
     const file = formData.get("image");
+    const userName = (formData.get("name") as string | null)?.trim() || "";
+    const userEmail = (formData.get("email") as string | null)?.trim() || "";
 
     if (!file || !(file instanceof File)) {
       return Response.json({ error: "No image file provided. Send a 'image' field." }, { status: 400 });
@@ -141,31 +143,44 @@ async function handleScan(req: Request): Promise<Response> {
     }
 
     const ingredients = ocrResult.ingredients;
+    let compliance;
+    let source: string;
+    let cacheId: number | null = null;
 
     // Step 2: Cache lookup
     const cached = await lookupCache(ingredients);
 
     if (cached) {
-      return Response.json({
-        success: true,
-        ingredients,
-        compliance: cached.compliance,
-        source: cached.exact ? "cache_exact" : "cache_fuzzy",
-      });
+      compliance = cached.compliance;
+      source = cached.exact ? "cache_exact" : "cache_fuzzy";
+    } else {
+      // Step 3: LLM diet check
+      compliance = await checkDiet(ingredients);
+      source = "llm";
+
+      if (compliance) {
+        const inserted = await insertCache(ingredients, compliance, "ocr");
+        cacheId = inserted ?? null;
+      }
     }
 
-    // Step 3: LLM diet check
-    const compliance = await checkDiet(ingredients);
-
-    if (compliance) {
-      await insertCache(ingredients, compliance, "ocr");
+    // Log scan if user info provided
+    if (userName && userEmail && compliance) {
+      await db.insert(scans).values({
+        userName,
+        userEmail: userEmail.toLowerCase(),
+        cacheId,
+        compliance,
+        ingredients,
+        source,
+      });
     }
 
     return Response.json({
       success: true,
       ingredients,
       compliance,
-      source: "llm",
+      source,
     });
   } catch (err: any) {
     console.error("Scan error:", err);
@@ -183,21 +198,75 @@ async function handleHistory(req: Request): Promise<Response> {
 
     const rows = await db
       .select({
-        id: ingredientCache.id,
-        ingredientsArray: ingredientCache.ingredientsArray,
-        compliance: ingredientCache.compliance,
-        createdAt: ingredientCache.createdAt,
-        source: ingredientCache.source,
-        hitCount: ingredientCache.hitCount,
+        id: scans.id,
+        userName: scans.userName,
+        userEmail: scans.userEmail,
+        ingredients: scans.ingredients,
+        compliance: scans.compliance,
+        source: scans.source,
+        scannedAt: scans.scannedAt,
       })
-      .from(ingredientCache)
-      .orderBy(desc(ingredientCache.createdAt))
+      .from(scans)
+      .orderBy(desc(scans.scannedAt))
       .limit(limit)
       .offset(offset);
 
     return Response.json({ success: true, history: rows });
   } catch (err: any) {
     console.error("History error:", err);
+    return Response.json({ error: err.message ?? "Internal server error" }, { status: 500 });
+  }
+}
+
+async function handleUsers(req: Request): Promise<Response> {
+  if (!isAuthedForApi(req)) return unauthorizedResponse("Missing or invalid API key. Provide X-API-Key header.");
+
+  try {
+    const rows = await db
+      .select({
+        userName: scans.userName,
+        userEmail: scans.userEmail,
+        scanCount: count(scans.id),
+        lastScannedAt: max(scans.scannedAt),
+      })
+      .from(scans)
+      .groupBy(scans.userEmail, scans.userName)
+      .orderBy(desc(max(scans.scannedAt)));
+
+    return Response.json({ success: true, users: rows });
+  } catch (err: any) {
+    console.error("Users error:", err);
+    return Response.json({ error: err.message ?? "Internal server error" }, { status: 500 });
+  }
+}
+
+async function handleUserScans(req: Request, email: string): Promise<Response> {
+  if (!isAuthedForApi(req)) return unauthorizedResponse("Missing or invalid API key. Provide X-API-Key header.");
+
+  try {
+    const url = new URL(req.url);
+    const limit = Math.min(Number(url.searchParams.get("limit")) || 50, 200);
+    const offset = Number(url.searchParams.get("offset")) || 0;
+
+    const rows = await db
+      .select({
+        id: scans.id,
+        userName: scans.userName,
+        userEmail: scans.userEmail,
+        ingredients: scans.ingredients,
+        compliance: scans.compliance,
+        source: scans.source,
+        scannedAt: scans.scannedAt,
+      })
+      .from(scans)
+      .where(eq(scans.userEmail, email.toLowerCase()))
+      .orderBy(desc(scans.scannedAt))
+      .limit(limit)
+      .offset(offset);
+
+    return Response.json({ success: true, scans: rows });
+  } catch (err: any) {
+    console.error("User scans error:", err);
     return Response.json({ error: err.message ?? "Internal server error" }, { status: 500 });
   }
 }
@@ -223,6 +292,16 @@ const server = Bun.serve({
 
     if (url.pathname === "/api/history" && req.method === "GET") {
       return handleHistory(req);
+    }
+
+    if (url.pathname === "/api/users" && req.method === "GET") {
+      return handleUsers(req);
+    }
+
+    // /api/users/:email/scans
+    const userScansMatch = url.pathname.match(/^\/api\/users\/([^/]+)\/scans$/);
+    if (userScansMatch && req.method === "GET") {
+      return handleUserScans(req, decodeURIComponent(userScansMatch[1]));
     }
 
     // Web UI disabled

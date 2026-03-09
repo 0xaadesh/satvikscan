@@ -1,4 +1,4 @@
-import { pgTable, bigserial, text, jsonb, timestamp, numeric, bigint, index } from "drizzle-orm/pg-core";
+import { pgTable, bigserial, text, jsonb, timestamp, numeric, bigint, index, foreignKey } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 /** The shape of the compliance JSONB stored in the cache */
@@ -43,5 +43,24 @@ export const ingredientCache = pgTable(
     index("idx_ingredient_cache_array_exact").using("gin", table.ingredientsArray),
     index("idx_ingredient_cache_text_trgm").using("gin", sql`${table.ingredientsText} gin_trgm_ops`),
     index("idx_ingredient_cache_compliance").using("gin", table.compliance),
+  ]
+);
+
+/** Scan log — tracks per-user scan history */
+export const scans = pgTable(
+  "scans",
+  {
+    id: bigserial({ mode: "number" }).primaryKey(),
+    userName: text("user_name").notNull(),
+    userEmail: text("user_email").notNull(),
+    cacheId: bigint("cache_id", { mode: "number" }).references(() => ingredientCache.id, { onDelete: "set null" }),
+    compliance: jsonb().$type<ComplianceResult>().notNull(),
+    ingredients: text().array().notNull(),
+    source: text(),
+    scannedAt: timestamp("scanned_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("idx_scans_user_email").on(table.userEmail),
+    index("idx_scans_scanned_at").on(table.scannedAt),
   ]
 );

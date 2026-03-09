@@ -33,3 +33,18 @@ CREATE TABLE ingredient_cache (
 CREATE INDEX idx_ingredient_cache_array_exact  ON ingredient_cache USING GIN (ingredients_array);
 CREATE INDEX idx_ingredient_cache_text_trgm    ON ingredient_cache USING GIN (ingredients_text gin_trgm_ops);
 CREATE INDEX idx_ingredient_cache_compliance   ON ingredient_cache USING GIN (compliance);
+
+-- Scan log table (tracks per-user scan history)
+CREATE TABLE IF NOT EXISTS scans (
+    id              BIGSERIAL PRIMARY KEY,
+    user_name       TEXT NOT NULL,
+    user_email      TEXT NOT NULL,
+    cache_id        BIGINT REFERENCES ingredient_cache(id) ON DELETE SET NULL,
+    compliance      JSONB NOT NULL,
+    ingredients     TEXT[] NOT NULL,
+    source          TEXT,
+    scanned_at      TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_scans_user_email ON scans (user_email);
+CREATE INDEX idx_scans_scanned_at ON scans (scanned_at DESC);

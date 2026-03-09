@@ -522,8 +522,140 @@
 
     /* Desktop */
     @media (min-width: 640px) {
-      .scan-page, .history-page { max-width: 560px; margin: 0 auto; }
+      .scan-page, .history-page, .users-page { max-width: 560px; margin: 0 auto; }
       .modal-sheet { max-width: 560px; }
+    }
+
+    /* ====== Users Page ====== */
+    .users-page { padding: 0 16px 24px; }
+
+    .users-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-faint);
+      font-size: 0.85rem;
+    }
+
+    .users-empty svg {
+      width: 48px;
+      height: 48px;
+      color: var(--text-faint);
+      margin-bottom: 12px;
+    }
+
+    .users-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .user-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .user-card:active { border-color: var(--text-faint); }
+
+    .u-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .u-name {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .u-count {
+      font-size: 0.65rem;
+      color: var(--text-faint);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 8px;
+    }
+
+    .u-email {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .u-last {
+      font-size: 0.62rem;
+      color: var(--text-faint);
+      margin-top: 6px;
+    }
+
+    /* User scans sub-view */
+    .user-scans-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .back-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-dim);
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .back-btn:active { border-color: var(--text-faint); color: var(--text); }
+
+    .user-scans-header .u-info {
+      flex: 1;
+    }
+
+    .user-scans-header .u-info .u-name { font-size: 0.9rem; }
+    .user-scans-header .u-info .u-email { margin-top: 0; }
+
+    .user-scans-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .user-scan-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+
+    .user-scan-card:active { border-color: var(--text-faint); }
+
+    .us-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .us-product {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #fff;
+      flex: 1;
+      margin-right: 8px;
+    }
+
+    .us-date {
+      font-size: 0.65rem;
+      color: var(--text-faint);
+      white-space: nowrap;
     }
   </style>
 </head>
@@ -615,6 +747,35 @@
     </div>
   </div>
 
+  <!-- USERS PAGE -->
+  <div class="page" id="pageUsers">
+    <div class="topbar">
+      <h1>User <span>Scans</span></h1>
+      <div class="subtitle">Per-user scan history</div>
+    </div>
+    <div class="users-page">
+      <!-- Users list view -->
+      <div id="usersListView">
+        <div class="users-empty" id="usersEmpty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <p>No user scans yet.</p>
+        </div>
+        <div class="users-list" id="usersList"></div>
+      </div>
+      <!-- User scans detail view -->
+      <div id="userScansView" style="display:none">
+        <div class="user-scans-header">
+          <button class="back-btn" id="usersBackBtn">&larr; Back</button>
+          <div class="u-info">
+            <div class="u-name" id="userScansName"></div>
+            <div class="u-email" id="userScansEmail"></div>
+          </div>
+        </div>
+        <div class="user-scans-list" id="userScansList"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- BOTTOM NAV -->
   <nav class="bottom-nav">
     <div class="nav-item active" data-page="pageScan">
@@ -624,6 +785,10 @@
     <div class="nav-item" data-page="pageHistory">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
       <span>History</span>
+    </div>
+    <div class="nav-item" data-page="pageUsers">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Users</span>
     </div>
   </nav>
 
@@ -640,6 +805,7 @@
         item.classList.add('active');
         document.getElementById(target).classList.add('active');
         if (target === 'pageHistory') loadHistory();
+        if (target === 'pageUsers') loadUsers();
       });
     });
 
@@ -797,6 +963,13 @@
       return d.innerHTML;
     }
 
+    const SOURCE_LABELS = { llm: 'LLM', cache_exact: 'Cached', cache_fuzzy: 'Fuzzy' };
+    function sourceBadgeHtml(src) {
+      const label = SOURCE_LABELS[src] || src || '';
+      if (!label) return '';
+      return `<span class="badge ${src}">${label}</span> `;
+    }
+
     // ====== HISTORY ======
     const historyList = document.getElementById('historyList');
     const historyEmpty = document.getElementById('historyEmpty');
@@ -819,9 +992,10 @@
           const card = document.createElement('div');
           card.className = 'history-card';
 
-          const name = item.compliance?.guessed_item || 'Unknown Product';
-          const date = item.createdAt
-            ? new Date(item.createdAt).toLocaleDateString('en-IN', {
+          const product = item.compliance?.guessed_item || 'Unknown Product';
+          const user = item.userName || '';
+          const date = item.scannedAt
+            ? new Date(item.scannedAt).toLocaleDateString('en-IN', {
                 day: 'numeric', month: 'short', year: 'numeric',
                 hour: '2-digit', minute: '2-digit'
               })
@@ -835,14 +1009,17 @@
 
           card.innerHTML = `
             <div class="h-top">
-              <div class="h-name">${esc(name)}</div>
+              <div class="h-name">${esc(product)}</div>
               <div class="h-date">${date}</div>
             </div>
-            <div class="h-badges">${badges}</div>
-            ${item.hitCount > 0 ? `<div class="h-hits">Used ${item.hitCount} time${item.hitCount > 1 ? 's' : ''} from cache</div>` : ''}
+            ${user ? `<div class="h-hits">by ${esc(user)}</div>` : ''}
+            <div class="h-badges">${sourceBadgeHtml(item.source)}${badges}</div>
           `;
 
-          card.addEventListener('click', () => openDetail(item));
+          card.addEventListener('click', () => openDetail({
+            compliance: item.compliance,
+            ingredientsArray: item.ingredients,
+          }));
           historyList.appendChild(card);
         }
       } catch {
@@ -868,6 +1045,119 @@
     modalCloseBtn.addEventListener('click', () => modalOverlay.classList.remove('open'));
     modalOverlay.addEventListener('click', e => {
       if (e.target === modalOverlay) modalOverlay.classList.remove('open');
+    });
+
+    // ====== USERS ======
+    const usersList = document.getElementById('usersList');
+    const usersEmpty = document.getElementById('usersEmpty');
+    const usersListView = document.getElementById('usersListView');
+    const userScansView = document.getElementById('userScansView');
+    const userScansName = document.getElementById('userScansName');
+    const userScansEmail = document.getElementById('userScansEmail');
+    const userScansList = document.getElementById('userScansList');
+    const usersBackBtn = document.getElementById('usersBackBtn');
+
+    async function loadUsers() {
+      usersListView.style.display = 'block';
+      userScansView.style.display = 'none';
+      try {
+        const res = await fetch('/api/users');
+        const data = await res.json();
+
+        if (!data.success || !data.users.length) {
+          usersEmpty.style.display = 'block';
+          usersList.innerHTML = '';
+          return;
+        }
+
+        usersEmpty.style.display = 'none';
+        usersList.innerHTML = '';
+
+        for (const u of data.users) {
+          const card = document.createElement('div');
+          card.className = 'user-card';
+
+          const lastDate = u.lastScannedAt
+            ? new Date(u.lastScannedAt).toLocaleDateString('en-IN', {
+                day: 'numeric', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+              })
+            : '';
+
+          card.innerHTML = `
+            <div class="u-top">
+              <div class="u-name">${esc(u.userName)}</div>
+              <div class="u-count">${u.scanCount} scan${u.scanCount > 1 ? 's' : ''}</div>
+            </div>
+            <div class="u-email">${esc(u.userEmail)}</div>
+            ${lastDate ? `<div class="u-last">Last scanned: ${lastDate}</div>` : ''}
+          `;
+
+          card.addEventListener('click', () => loadUserScans(u.userName, u.userEmail));
+          usersList.appendChild(card);
+        }
+      } catch {
+        usersEmpty.style.display = 'block';
+        usersList.innerHTML = '';
+      }
+    }
+
+    async function loadUserScans(name, email) {
+      usersListView.style.display = 'none';
+      userScansView.style.display = 'block';
+      userScansName.textContent = name;
+      userScansEmail.textContent = email;
+      userScansList.innerHTML = '';
+
+      try {
+        const res = await fetch(`/api/users/${encodeURIComponent(email)}/scans`);
+        const data = await res.json();
+
+        if (!data.success || !data.scans.length) {
+          userScansList.innerHTML = '<div class="users-empty"><p>No scans found.</p></div>';
+          return;
+        }
+
+        for (const s of data.scans) {
+          const card = document.createElement('div');
+          card.className = 'user-scan-card';
+
+          const product = s.compliance?.guessed_item || 'Unknown Product';
+          const date = s.scannedAt
+            ? new Date(s.scannedAt).toLocaleDateString('en-IN', {
+                day: 'numeric', month: 'short', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+              })
+            : '';
+
+          let badges = '';
+          for (const d of DIETS) {
+            const pass = s.compliance?.[`is_${d.key}`];
+            badges += `<span class="h-badge ${pass ? 'pass' : 'fail'}">${d.label}</span>`;
+          }
+
+          card.innerHTML = `
+            <div class="us-top">
+              <div class="us-product">${esc(product)}</div>
+              <div class="us-date">${date}</div>
+            </div>
+            <div class="h-badges">${sourceBadgeHtml(s.source)}${badges}</div>
+          `;
+
+          card.addEventListener('click', () => openDetail({
+            compliance: s.compliance,
+            ingredientsArray: s.ingredients,
+          }));
+          userScansList.appendChild(card);
+        }
+      } catch {
+        userScansList.innerHTML = '<div class="users-empty"><p>Failed to load scans.</p></div>';
+      }
+    }
+
+    usersBackBtn.addEventListener('click', () => {
+      usersListView.style.display = 'block';
+      userScansView.style.display = 'none';
     });
   </script>
 </body>

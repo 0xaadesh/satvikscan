@@ -38,20 +38,22 @@ bun run index.ts ./photo.jpg
 
 ### `POST /api/scan`
 
-Upload a food product image for OCR + dietary compliance check.
+Upload a food product image for OCR + dietary compliance check. Optionally include `name` and `email` to log the scan per-user.
 
 **curl (file upload):**
 
 ```bash
 curl -X POST http://localhost:3000/api/scan \
   -H "X-API-Key: my-api-key" \
-  -F "image=@/path/to/ingredient-label.jpg"
+  -F "image=@/path/to/ingredient-label.jpg" \
+  -F "name=Aadesh" \
+  -F "email=aadesh@example.com"
 ```
 
 **PowerShell:**
 
 ```powershell
-curl.exe -X POST http://localhost:3000/api/scan -H "X-API-Key: my-api-key" -F "image=@C:\path\to\ingredient-label.jpg"
+curl.exe -X POST http://localhost:3000/api/scan -H "X-API-Key: my-api-key" -F "image=@C:\path\to\ingredient-label.jpg" -F "name=Aadesh" -F "email=aadesh@example.com"
 ```
 
 **Response (success):**
@@ -137,6 +139,66 @@ Invoke-RestMethod -Headers @{"X-API-Key"="my-api-key"} "http://localhost:3000/ap
       "createdAt": "2026-03-06T12:00:00.000Z",
       "source": "ocr",
       "hitCount": 3
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/users`
+
+List all users who have submitted scans, with scan counts.
+
+```bash
+curl -H "X-API-Key: my-api-key" http://localhost:3000/api/users
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "users": [
+    {
+      "userName": "Aadesh",
+      "userEmail": "aadesh@example.com",
+      "scanCount": 5,
+      "lastScannedAt": "2026-03-09T14:30:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+### `GET /api/users/:email/scans`
+
+Get scan history for a specific user by email (paginated).
+
+| Param    | Default | Max | Description            |
+| -------- | ------- | --- | ---------------------- |
+| `limit`  | 50      | 200 | Number of results      |
+| `offset` | 0       | —   | Skip this many results |
+
+```bash
+curl -H "X-API-Key: my-api-key" "http://localhost:3000/api/users/aadesh@example.com/scans"
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "scans": [
+    {
+      "id": 1,
+      "userName": "Aadesh",
+      "userEmail": "aadesh@example.com",
+      "ingredients": ["sugar", "wheat flour"],
+      "compliance": { "..." },
+      "source": "llm",
+      "scannedAt": "2026-03-09T14:30:00.000Z"
     }
   ]
 }
