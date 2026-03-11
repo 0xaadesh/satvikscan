@@ -5,7 +5,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { z } from 'zod';
 
-const model = aisdk(groq('meta-llama/llama-4-maverick-17b-128e-instruct'))
+const model = aisdk(groq('meta-llama/llama-4-scout-17b-16e-instruct'))
 
 const IngredientSchema = z.object({
   is_food_item: z.boolean().describe("true if the image shows a food/beverage product's ingredient list, false if it's a non-food item like toothpaste, shampoo, soap, detergent, etc."),
