@@ -6,7 +6,7 @@ Scan food product ingredient labels and check dietary compliance (Vegetarian, Ja
 
 Watch the tutorial video below to see **SatvikScan** in action:
 
-<video src="https://github.com/user-attachments/assets/353c441f-5784-4d66-94ee-2cf5aa3dd9ed" controls width="100%"></video>
+<video src="https://github.com/user-attachments/assets/971cf994-84de-425f-a81b-f3201b63b846" controls width="100%"></video>
 
 _If the video player above does not load or play, you can [watch the demonstration video directly in your browser](https://github.com/user-attachments/assets/353c441f-5784-4d66-94ee-2cf5aa3dd9ed)._
 
