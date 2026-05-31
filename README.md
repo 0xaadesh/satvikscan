@@ -2,6 +2,22 @@
 
 Scan food product ingredient labels and check dietary compliance (Vegetarian, Jain, Upvas, Swaminarayan, Vegan) using LLM-powered OCR and analysis with a PostgreSQL ingredient cache.
 
+## 📺 Demonstration Video
+
+Watch the tutorial video below to see **SatvikScan** in action:
+
+<video src="https://github.com/user-attachments/assets/353c441f-5784-4d66-94ee-2cf5aa3dd9ed" controls width="100%"></video>
+
+_If the video player above does not load or play, you can [watch the demonstration video directly in your browser](https://github.com/user-attachments/assets/353c441f-5784-4d66-94ee-2cf5aa3dd9ed)._
+
+---
+
+## Process Flow
+
+Below is the sequence diagram illustrating the end-to-end execution flow of the `POST /api/scan` endpoint. The system orchestrates authentication, LLM-powered OCR ingredient extraction, high-performance database caching (using exact hash matches and trigram similarity fuzzy lookup), LLM dietary analysis fallback, and user scan logging.
+
+![Process Flow](satvikscan-mermaid.png)
+
 ## Setup
 
 ```bash
